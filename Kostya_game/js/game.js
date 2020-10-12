@@ -10,10 +10,20 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
         this.ctx = document.getElementById("mycanvas").getContext("2d");//מקבלים כלים של קאנבס לעבודה עם גרפיקה 2ד
     },
     preload() {
-for(let key in this.sprites){//for each key in object sprites
+        let loaded=0;
+        let required=Object.keys(this.sprites).length;// מקבלים כמות מפתחות(משתנים) ב SPRITES 
+
+        for(let key in this.sprites){//for each key in object sprites
         this.sprites[key] = new Image();//call constructor
         this.sprites[key].src = "/img/"+key+".png";//*********************** */
-    },
+        this.sprites[key].addEventListener("load",()=>{
+            ++loaded;//בכל הורדה של תמונה מוסעיפים 1 למשתנה כאשר מגיע לכמות הנדרש מפעיל את הפונקציה
+            if(loaded>=required)
+            {
+                this.run();
+            }
+        })
+    }},
     run() {
         //this.ctx.drawImage(background,0,0);//אומרים לקאנבס איזה ציור אנחנו מתחננים לצייר ושאנחנו רוצים להתחיל מ 0 0 זה פינה אליונה שמאלית
         window.requestAnimationFrame(() => {
@@ -22,9 +32,9 @@ this.render();
 
     },
     render(){ 
-            this.ctx.drawImage(this.background, 0, 0);//מציירים כל משפונקציה מקבלת
-            this.ctx.drawImage(this.ball, 0, 0);
-            this.ctx.drawImage(this.platform, 0, 0);
+            this.ctx.drawImage(this.sprites.background, 0, 0);//מציירים כל משפונקציה מקבלת
+            this.ctx.drawImage(this.sprites.ball, 0, 0);//this=game
+            this.ctx.drawImage(this.sprites.platform, 0, 0);
     },
     start: function () {//מטודה שלמעילה את המשחק
 
