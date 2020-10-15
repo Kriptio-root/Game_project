@@ -69,6 +69,7 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
             for (let col = 0; col < this.cols; col++) {
                 this.blocks.push(
                     {
+                        active:true,
                         width:60,
                         height:20,
                         x: (60 + 4) * col + 65,//(block w+col gap)*col+margin left
@@ -83,12 +84,23 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     update() {
         this.platform.move();//תזוזה של פלאוטפורמה
         this.ball.move();
+        this.collideBlocks();
+        this.collidePlatform();
 
+
+    },
+    collideBlocks(){
         for (let block of this.blocks) {
-           if(this.ball.collide(block)){//אם הייתה נגיע
-               this.ball.bumpBlock(block);//פגיע בבלוק
-            console.log('collide!');
-           }
+            if(block.active&&this.ball.collide(block)){//אם הייתה נגיע
+                this.ball.bumpBlock(block);//פגיע בבלוק
+            // console.log('collide!');
+            }
+         }
+    },
+    collidePlatform(){
+        if(this.ball.collide(this.platform)){
+            this.ball.bumpPlatform(this.platform);
+            //console.log("ball collides platform!");
         }
     },
     run() {
@@ -109,8 +121,9 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     },
     renderBlocks() {
         for (let block of this.blocks) {
+            if(block.active){//בדיקה אם כבר פגענו בבלוק
             this.ctx.drawImage(this.sprites.block, block.x, block.y);
-
+            }
         }
     },
     start: function () {//מטודה שמתחילה את המשחק
@@ -159,11 +172,20 @@ game.ball = {
         ) { return true; }
         return false;
     },
-    bumpBlock(){
+    bumpBlock(block){
         this.dy*=-1;
+        block.active=false;
+    },
+    bumpPlatform(platform){
+        this.dy*=-1;
+        let touchX=this.x+this.width/2;//מקבלים מרכז של הכדור
+        this.dx=this.velocity*platform.getTouchOffset(touchX);
+
     }
 };
 game.platform = {
+    width:100,
+    height:14,
     velocity: 6,//מהירות מקסימלית של הפלטפורמה
     dx: 0,//מהירות נוחכית velocity +6 or -6
     x: 280,
@@ -196,6 +218,14 @@ game.platform = {
             // game.ball.x += this.dx;
             // }
         }
+    },
+    getTouchOffset(x){
+        let dif=(this.x+this.width)-x;
+        let offset=this.width-dif;
+        //2=this.width
+        //offset-?
+        let result=2*offset/this.width;
+        return (result-1);
     }
 };
 
