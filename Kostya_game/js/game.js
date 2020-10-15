@@ -10,6 +10,8 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     blocks: [],//empty arr for blocks
     rows: 4,//rows for blocks
     cols: 8,//cols for blocks
+    WIDTH: 640,//canvas width
+    HEIGTH: 360,//canvas height
     sprites: {
         background: null,
         ball: null,
@@ -67,6 +69,8 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
             for (let col = 0; col < this.cols; col++) {
                 this.blocks.push(
                     {
+                        width:60,
+                        height:20,
                         x: (60 + 4) * col + 65,//(block w+col gap)*col+margin left
                         y: (20 + 4) * row + 35//(block h+row gap)*+margin top
 
@@ -79,6 +83,13 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     update() {
         this.platform.move();//תזוזה של פלאוטפורמה
         this.ball.move();
+
+        for (let block of this.blocks) {
+           if(this.ball.collide(block)){//אם הייתה נגיע
+               this.ball.bumpBlock(block);//פגיע בבלוק
+            console.log('collide!');
+           }
+        }
     },
     run() {
         window.requestAnimationFrame(() => {//אומריל בדפדפן שמפריים הבא צריך לצייר כל משאנחנו תיחננו) 
@@ -89,6 +100,7 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
         });
     },
     render() {
+        this.ctx.clearRect(0, 0, this.WIDTH, this.HEIGTH);
         this.ctx.drawImage(this.sprites.background, 0, 0);//מציירים כל משפונקציה מקבלת
         this.ctx.drawImage(this.sprites.platform, this.platform.x, this.platform.y);//this=game
         this.ctx.drawImage(this.sprites.ball, 0, 0, this.ball.width, this.ball.height,
@@ -98,9 +110,9 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     renderBlocks() {
         for (let block of this.blocks) {
             this.ctx.drawImage(this.sprites.block, block.x, block.y);
-        
-    }
-},
+
+        }
+    },
     start: function () {//מטודה שמתחילה את המשחק
 
         this.init();
@@ -109,22 +121,46 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
             this.run();
         });
 
+    },
+    random(min, max) {//שליחת כדור לקיוון רנדומלי
+        //0.(9)*2+1=1.999...+1=2.999...floor(2.999)<+1=max 3
+        return Math.floor(Math.random() * (max - min + 1) + min);//בטוח מחזיר מספר כי 0 לא מתאים לי
+
     }
 };
 game.ball = {
     velocity: -3,//max speed for the ball -3 becouse 0,0 is left hight corner
     dy: 0,
+    dx: 0,
     x: 320,
     y: 280,
     width: 20,
     height: 20,
     start() {
         this.dy = this.velocity;
+        this.dx = game.random(-this.velocity, this.velocity);
     },
     move() {
         if (this.dy) {
             this.y += this.dy;
         }
+        if (this.dx) {
+            this.x += this.dx;
+        }
+    },
+    collide(element) {//בדיקה אם כדור נוגע בבלוק
+      let x=this.x+this.dx;//קורדינטה נוחכית+קורדינטה של תזוזה על מנת שלא יהיה פיקסל על פיקסל
+      let y=this.y+this.dy;
+        if (
+            x + this.width > element.x &&
+            x < element.x + element.width &&
+            y + this.height > element.y &&
+            y < element.y + element.height
+        ) { return true; }
+        return false;
+    },
+    bumpBlock(){
+        this.dy*=-1;
     }
 };
 game.platform = {
