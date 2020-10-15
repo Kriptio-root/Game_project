@@ -1,7 +1,8 @@
 const KEYS = {
     LEFT: 37,
-    RIGHT: 39
-}
+    RIGHT: 39,
+    SPACE: 32
+};
 let game = {// כל הפעולות אנחנו עושים פה כל הלוגיקה של המשחק פה זה משתנה גלובאלי יחיד בפרוייקט
     ctx: null,//אומר שמשתנה יכול לקבל ערך של אובייקט
     platform: null,
@@ -9,6 +10,8 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     blocks: [],//empty arr for blocks
     rows: 4,//rows for blocks
     cols: 8,//cols for blocks
+    WIDTH: 640,//canvas width
+    HEIGTH: 360,//canvas height
     sprites: {
         background: null,
         ball: null,
@@ -22,8 +25,13 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     setEvents() {
         window.addEventListener("keydown", e => {//בודקים איזה מקש לחוץ
 
+            if (e.keyCode === KEYS.SPACE) {
+                this.platform.fire();
+                // this.ball.start();
+                //console.log('start the ball');
+            }
 
-            if (e.keyCode === KEYS.LEFT || e.keyCode === KEYS.RIGHT) {
+            else if (e.keyCode === KEYS.LEFT || e.keyCode === KEYS.RIGHT) {
                 this.platform.start(e.keyCode);
             }
             //     this.platform.dx = -this.platform.velocity;//הזזה של פלאטפורמה שמאלה
@@ -32,11 +40,13 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
             //     this.platform.dx = this.platform.velocity;//הזזה של פלטפורנה ימינה
             //     //console.log('move right');//מקש ימני
             // }
-            //מחקתי קוד הנ"ל על מנת לעשות אינקפסולציה ולא לשנות ערכים של האובייקט מבחוץ אלה לקראו למטודות מתוך האובייקט שיכולות לעשות את זה.לדעתי זה יותר נכון לארכיתקטורה של התוכנה
+            //מחקתי קוד הנ"ל על מנת לעשות אינקפסולציה ולא לשנות ערכים של האובייקט מבחוץ
+            //   אלה לקראו למטודות מתוך האובייקט שיכולות לעשות את זה
+            //.לדעתי זה יותר נכון לארכיתקטורה של התוכנה
         });
         window.addEventListener("keyup", e => {//כאשר משחררים את הכפטור פלאוטפורמה נעצרת
-           this.platform.stop();
-           
+            this.platform.stop();
+
         });
     },
     preload(callback) {
@@ -55,36 +65,52 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
         }
     },
     create() {
-        for (let row = 0; row < this.rows; row++)
-            for (let col = 0; col < this.cols; col++)
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
                 this.blocks.push(
                     {
+                        width:60,
+                        height:20,
                         x: (60 + 4) * col + 65,//(block w+col gap)*col+margin left
                         y: (20 + 4) * row + 35//(block h+row gap)*+margin top
 
                     }
+
                 );
+            }
+        }
     },
     update() {
-        this.platform.move();
+        this.platform.move();//תזוזה של פלאוטפורמה
+        this.ball.move();
+
+        for (let block of this.blocks) {
+           if(this.ball.collide(block)){//אם הייתה נגיע
+               this.ball.bumpBlock(block);//פגיע בבלוק
+            console.log('collide!');
+           }
+        }
     },
     run() {
         window.requestAnimationFrame(() => {//אומריל בדפדפן שמפריים הבא צריך לצייר כל משאנחנו תיחננו) 
-            this.update();
+            this.update();//קוראים למטודה הזו פלני כל ציור פריים חדש לציור של דברים במצב עדכני שלהם
             this.render();
             //console.log('render complited');
             this.run();//רקורסיה לטובת ציור התקני על מנת להזיז דברים
         });
     },
     render() {
+        this.ctx.clearRect(0, 0, this.WIDTH, this.HEIGTH);
         this.ctx.drawImage(this.sprites.background, 0, 0);//מציירים כל משפונקציה מקבלת
         this.ctx.drawImage(this.sprites.platform, this.platform.x, this.platform.y);//this=game
-        this.ctx.drawImage(this.sprites.ball, 0, 0, this.ball.width, this.ball.height, this.ball.x, this.ball.y, this.ball.width, this.ball.height);//מציירים את הכדור פאר פריים
+        this.ctx.drawImage(this.sprites.ball, 0, 0, this.ball.width, this.ball.height,
+            this.ball.x, this.ball.y, this.ball.width, this.ball.height);//מציירים את הכדור פאר פריים
         this.renderBlocks();
     },
     renderBlocks() {
         for (let block of this.blocks) {
             this.ctx.drawImage(this.sprites.block, block.x, block.y);
+
         }
     },
     start: function () {//מטודה שמתחילה את המשחק
@@ -95,6 +121,46 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
             this.run();
         });
 
+    },
+    random(min, max) {//שליחת כדור לקיוון רנדומלי
+        //0.(9)*2+1=1.999...+1=2.999...floor(2.999)<+1=max 3
+        return Math.floor(Math.random() * (max - min + 1) + min);//בטוח מחזיר מספר כי 0 לא מתאים לי
+
+    }
+};
+game.ball = {
+    velocity: -3,//max speed for the ball -3 becouse 0,0 is left hight corner
+    dy: 0,
+    dx: 0,
+    x: 320,
+    y: 280,
+    width: 20,
+    height: 20,
+    start() {
+        this.dy = this.velocity;
+        this.dx = game.random(-this.velocity, this.velocity);
+    },
+    move() {
+        if (this.dy) {
+            this.y += this.dy;
+        }
+        if (this.dx) {
+            this.x += this.dx;
+        }
+    },
+    collide(element) {//בדיקה אם כדור נוגע בבלוק
+      let x=this.x+this.dx;//קורדינטה נוחכית+קורדינטה של תזוזה על מנת שלא יהיה פיקסל על פיקסל
+      let y=this.y+this.dy;
+        if (
+            x + this.width > element.x &&
+            x < element.x + element.width &&
+            y + this.height > element.y &&
+            y < element.y + element.height
+        ) { return true; }
+        return false;
+    },
+    bumpBlock(){
+        this.dy*=-1;
     }
 };
 game.platform = {
@@ -102,6 +168,13 @@ game.platform = {
     dx: 0,//מהירות נוחכית velocity +6 or -6
     x: 280,
     y: 300,
+    ball: game.ball,
+    fire() {
+        if (this.ball) {
+            this.ball.start();
+            this.ball = null;
+        }
+    },
     start(direction) {
         if (direction === KEYS.LEFT) {// if pressed left arrow
             this.dx = -this.velocity;
@@ -110,23 +183,22 @@ game.platform = {
             this.dx = this.velocity;
         }
     },
-    stop(){
-        this.dx=0;
+    stop() {
+        this.dx = 0;
     },
     move() {
         if (this.dx) {//אם פלאוטפורמה זזה
             this.x += this.dx;
-            game.ball.x += this.dx;
-
+            if (this.ball) {
+                this.ball.x += this.dx;
+            }
+            // if(game.ball.dy===0){
+            // game.ball.x += this.dx;
+            // }
         }
     }
 };
-game.ball = {
-    x: 320,
-    y: 280,
-    width: 20,
-    height: 20
-};
+
 window.addEventListener("load", () => {//הפעלת פונקציה רק לאחר שכל התאגים נטענו
 
     game.start();
