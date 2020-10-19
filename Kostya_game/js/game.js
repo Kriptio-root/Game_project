@@ -4,8 +4,10 @@ const KEYS = {
     SPACE: 32
 };
 let game = {// כל הפעולות אנחנו עושים פה כל הלוגיקה של המשחק פה זה משתנה גלובאלי יחיד בפרוייקט
+   running:true,//game running
     ctx: null,//אומר שמשתנה יכול לקבל ערך של אובייקט
     platform: null,
+    score:0,
     ball: null,
     blocks: [],//empty arr for blocks
     rows: 4,//rows for blocks
@@ -69,9 +71,9 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
             for (let col = 0; col < this.cols; col++) {
                 this.blocks.push(
                     {
-                        active:true,
-                        width:60,
-                        height:20,
+                        active: true,
+                        width: 60,
+                        height: 20,
                         x: (60 + 4) * col + 65,//(block w+col gap)*col+margin left
                         y: (20 + 4) * row + 35//(block h+row gap)*+margin top
 
@@ -82,34 +84,48 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
         }
     },
     update() {
-        this.platform.move();//תזוזה של פלאוטפורמה
-        this.ball.move();
         this.collideBlocks();
         this.collidePlatform();
+        this.ball.collideWorldBounds();
+        this.platform.collideWorldBounds();
+        this.platform.move();//תזוזה של פלאוטפורמה
+        this.ball.move();
 
 
     },
-    collideBlocks(){
+    addScore(){
+++this.score;
+if(this.score>=this.blocks.length)
+{
+    game.running=false;
+    alert("You Win!");
+    window.location.reload();
+}
+    },
+    collideBlocks() {
         for (let block of this.blocks) {
-            if(block.active&&this.ball.collide(block)){//אם הייתה נגיע
+            if (block.active && this.ball.collide(block)) {//אם הייתה נגיע
                 this.ball.bumpBlock(block);//פגיע בבלוק
-            // console.log('collide!');
+                // console.log('collide!');
+                this.addScore();
             }
-         }
+        }
     },
-    collidePlatform(){
-        if(this.ball.collide(this.platform)){
+    collidePlatform() {
+        if (this.ball.collide(this.platform)) {
             this.ball.bumpPlatform(this.platform);
             //console.log("ball collides platform!");
         }
     },
     run() {
+        if(this.running){//if running false =stop the game
         window.requestAnimationFrame(() => {//אומריל בדפדפן שמפריים הבא צריך לצייר כל משאנחנו תיחננו) 
             this.update();//קוראים למטודה הזו פלני כל ציור פריים חדש לציור של דברים במצב עדכני שלהם
             this.render();
             //console.log('render complited');
             this.run();//רקורסיה לטובת ציור התקני על מנת להזיז דברים
         });
+    }
     },
     render() {
         this.ctx.clearRect(0, 0, this.WIDTH, this.HEIGTH);
@@ -121,8 +137,8 @@ let game = {// כל הפעולות אנחנו עושים פה כל הלוגיק�
     },
     renderBlocks() {
         for (let block of this.blocks) {
-            if(block.active){//בדיקה אם כבר פגענו בבלוק
-            this.ctx.drawImage(this.sprites.block, block.x, block.y);
+            if (block.active) {//בדיקה אם כבר פגענו בבלוק
+                this.ctx.drawImage(this.sprites.block, block.x, block.y);
             }
         }
     },
@@ -162,8 +178,8 @@ game.ball = {
         }
     },
     collide(element) {//בדיקה אם כדור נוגע בבלוק
-      let x=this.x+this.dx;//קורדינטה נוחכית+קורדינטה של תזוזה על מנת שלא יהיה פיקסל על פיקסל
-      let y=this.y+this.dy;
+        let x = this.x + this.dx;//קורדינטה נוחכית+קורדינטה של תזוזה על מנת שלא יהיה פיקסל על פיקסל
+        let y = this.y + this.dy;
         if (
             x + this.width > element.x &&
             x < element.x + element.width &&
@@ -172,20 +188,59 @@ game.ball = {
         ) { return true; }
         return false;
     },
-    bumpBlock(block){
-        this.dy*=-1;
-        block.active=false;
-    },
-    bumpPlatform(platform){
-        this.dy*=-1;
-        let touchX=this.x+this.width/2;//מקבלים מרכז של הכדור
-        this.dx=this.velocity*platform.getTouchOffset(touchX);
+    bumpBlock(block) {
+        this.dy *= -1;
+        block.active = false;
 
+    },
+    bumpPlatform(platform) {
+        if (this.dy > 0) {//כדי שכדור לא יתקע על פלטפורמה
+            this.dy = this.velocity;
+            let touchX = this.x + this.width / 2;//מקבלים מרכז של הכדור
+            this.dx = this.velocity * platform.getTouchOffset(touchX);
+        }
+    },
+    collideWorldBounds() { 
+        let x = this.x + this.dx;//קורדינטה נוחכית+קורדינטה של תזוזה על מנת שלא יהיה פיקסל על פיקסל
+        let y = this.y + this.dy;
+
+        let ballLeft=x;//צד שמאלי של הכדור
+        let ballRight=x+this.width;//צד ימני של הכדור
+        let ballTop=y;//גבול אליון של הכדור
+        let ballBottom=y+this.height;//גבול תחתון של הכדור
+   
+        let worldLeft=0;
+        let worldRight=game.WIDTH;
+        let worldTop=0;
+        let worldBottom=game.HEIGTH;
+// console.log(ballBottom);
+// console.log(worldBottom);
+        if(ballLeft<worldLeft){
+            this.x=0;// ממקמים את הכדור שמאלה
+            this.dx*=-1;
+            //console.log("World Left!");
+        }else         if(ballRight>worldRight){
+            // console.log("World Right!");
+            // console.log(this.width);
+            // console.log(worldRight);
+          this.x=worldRight-this.width;//ממקמים את הכדור ימינה
+          this.dx=this.velocity;
+        }else         if(ballTop<worldTop){
+            this.y=0;
+            this.dy=-this.velocity;
+          //  console.log("World Top!");
+        }else         if(ballBottom>worldBottom){
+          //  console.log("World Bottom!");
+            console.log("Game over!");
+            game.running=false;//stop the game
+            alert("You lose!");//user msg
+            window.location.reload();//restart game after loosing
+        }
     }
 };
 game.platform = {
-    width:100,
-    height:14,
+    width: 100,
+    height: 14,
     velocity: 6,//מהירות מקסימלית של הפלטפורמה
     dx: 0,//מהירות נוחכית velocity +6 or -6
     x: 280,
@@ -219,13 +274,27 @@ game.platform = {
             // }
         }
     },
-    getTouchOffset(x){
-        let dif=(this.x+this.width)-x;
-        let offset=this.width-dif;
+    getTouchOffset(x) {
+        let dif = (this.x + this.width) - x;
+        let offset = this.width - dif;
         //2=this.width
         //offset-?
-        let result=2*offset/this.width;
-        return (result-1);
+        let result = 2 * offset / this.width;
+        return (result - 1);
+    },
+    collideWorldBounds() { 
+        let x = this.x + this.dx;//קורדינטה נוחכית+קורדינטה של תזוזה על מנת שלא יהיה פיקסל על פיקסל
+
+        let platformLeft=x;//צד שמאלי של platform
+        let platformRight=platformLeft+this.width;//צד ימני של platform
+
+   
+        let worldLeft=0;
+        let worldRight=game.WIDTH;
+
+        if(platformLeft<worldLeft||platformRight>worldRight){
+            this.dx=0;
+        }
     }
 };
 
